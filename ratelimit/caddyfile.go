@@ -14,7 +14,7 @@ func init() {
 
 // parseCaddyfile sets up a handler for rate-limiting from Caddyfile tokens. Syntax:
 //
-//     rate_limit [<matcher>] <key> <rate> [<zone_size> [<reject_status>]]
+//	rate_limit [<matcher>] <key> <rate> [<zone_size> [<reject_status>]]
 //
 // Parameters:
 // - <key>: The variable used to differentiate one client from another.
@@ -30,7 +30,7 @@ func parseCaddyfile(h httpcaddyfile.Helper) (caddyhttp.MiddlewareHandler, error)
 }
 
 func (rl *RateLimit) UnmarshalCaddyfile(d *caddyfile.Dispenser) (err error) {
-	if d.Next() {
+	for d.Next() {
 		args := d.RemainingArgs()
 		switch len(args) {
 		case 4:
@@ -51,6 +51,41 @@ func (rl *RateLimit) UnmarshalCaddyfile(d *caddyfile.Dispenser) (err error) {
 			rl.Key = args[0]
 		default:
 			return d.ArgErr()
+		}
+
+		// Consume the arguments manually since RemainingArgs doesn't
+		for i := 0; i < len(args); i++ {
+			d.NextArg()
+		}
+
+		for d.NextBlock(0) {
+			switch d.Val() {
+			case "cloudflare":
+				rl.Cloudflare = &CloudflareConfig{}
+				for nesting := d.Nesting(); d.NextBlock(nesting); {
+					switch d.Val() {
+					case "api_token":
+						if !d.NextArg() {
+							return d.ArgErr()
+						}
+						rl.Cloudflare.APIToken = d.Val()
+					case "account_id":
+						if !d.NextArg() {
+							return d.ArgErr()
+						}
+						rl.Cloudflare.AccountID = d.Val()
+					case "list_id":
+						if !d.NextArg() {
+							return d.ArgErr()
+						}
+						rl.Cloudflare.ListID = d.Val()
+					default:
+						return d.Errf("unknown subdirective: %s", d.Val())
+					}
+				}
+			default:
+				return d.Errf("unknown subdirective: %s", d.Val())
+			}
 		}
 	}
 	return nil

@@ -1,6 +1,7 @@
 package ratelimit
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/RussellLuo/caddy-ext/cloudflare"
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
 	"go.uber.org/zap"
@@ -62,10 +64,22 @@ type RateLimit struct {
 	// Defaults to 429 (Too Many Requests).
 	RejectStatusCode int `json:"reject_status,omitempty"`
 
+	// Cloudflare configuration for adding blocked IPs to a list.
+	Cloudflare *CloudflareConfig `json:"cloudflare,omitempty"`
+
 	keyVar *Var
 	zone   *Zone
 
 	logger *zap.Logger
+
+	cfClient *cloudflare.Client
+}
+
+// CloudflareConfig holds the configuration for Cloudflare integration.
+type CloudflareConfig struct {
+	APIToken  string `json:"api_token,omitempty"`
+	AccountID string `json:"account_id,omitempty"`
+	ListID    string `json:"list_id,omitempty"`
 }
 
 // CaddyModule returns the Caddy module information.
@@ -104,6 +118,17 @@ func (rl *RateLimit) provision() (err error) {
 
 	if rl.RejectStatusCode == 0 {
 		rl.RejectStatusCode = http.StatusTooManyRequests
+	}
+
+	if rl.Cloudflare != nil {
+		if rl.Cloudflare.APIToken == "" || rl.Cloudflare.AccountID == "" || rl.Cloudflare.ListID == "" {
+			return fmt.Errorf("cloudflare configuration incomplete: api_token, account_id, and list_id are required")
+		}
+		var err error
+		rl.cfClient, err = cloudflare.NewClient(rl.Cloudflare.APIToken, rl.Cloudflare.AccountID, rl.Cloudflare.ListID)
+		if err != nil {
+			return fmt.Errorf("failed to create cloudflare client: %v", err)
+		}
 	}
 
 	return nil
@@ -150,12 +175,41 @@ func (rl *RateLimit) ServeHTTP(w http.ResponseWriter, r *http.Request, next cadd
 			zap.String("value", keyValue),
 		)
 
+		if rl.Cloudflare != nil && rl.cfClient != nil {
+			go rl.blockIP(keyValue)
+		}
+
 		w.WriteHeader(rl.RejectStatusCode)
 		// Return an error to invoke possible error handlers.
 		return caddyhttp.Error(rl.RejectStatusCode, nil)
 	}
 
 	return next.ServeHTTP(w, r)
+}
+
+func (rl *RateLimit) blockIP(ip string) {
+	// Basic IP validation
+	if net.ParseIP(ip) == nil {
+		rl.logger.Debug("skipping cloudflare block: value is not a valid IP", zap.String("value", ip))
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	err := rl.cfClient.BlockIP(ctx, ip, "Blocked by Caddy Rate Limit")
+
+	if err != nil {
+		rl.logger.Error("failed to add IP to cloudflare list",
+			zap.String("ip", ip),
+			zap.Error(err),
+		)
+	} else {
+		rl.logger.Info("added IP to cloudflare list",
+			zap.String("ip", ip),
+			zap.String("list_id", rl.Cloudflare.ListID),
+		)
+	}
 }
 
 type Var struct {

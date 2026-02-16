@@ -1,23 +1,36 @@
 # ratelimit
 
-A Caddy v2 extension to apply rate-limiting for HTTP requests.
+A Caddy v2 extension to apply IP-based rate-limiting for HTTP requests. Optionally, block offending IPs via a Cloudflare Custom List when the rate limit is exceeded.
 
+## Features
+
+- Powerful and configurable rate limiting by IP or request property (see placeholders).
+- **Cloudflare Integration:** Automatically add violating client IPs to a specified Cloudflare IP Custom List via the Cloudflare API (optional).
+
+---
 
 ## Installation
 
-```bash
+```
 $ xcaddy build --with github.com/RussellLuo/caddy-ext/ratelimit
 ```
+
+---
 
 ## Caddyfile Syntax
 
 ```
-rate_limit [<matcher>] <key> <rate> [<zone_size> [<reject_status>]]
+rate_limit [<matcher>] <key> <rate> [<zone_size> [<reject_status>]] {
+    cloudflare {
+        api_token <api_token>
+        account_id <account_id>
+        list_id   <list_id>
+    }
+}
 ```
 
-Parameters:
-
-- `<key>`: The variable used to differentiate one client from another. Currently supported variables ([Caddy shorthand placeholders][1]):
+**Parameters:**
+- `<key>`: The variable to uniquely identify a client. Supported variables ([Caddy shorthand placeholders][1]):
     + `{path.<var>}`
     + `{query.<var>}`
     + `{header.<VAR>}`
@@ -26,44 +39,76 @@ Parameters:
     + `{remote.host}` (ignores the `X-Forwarded-For` header)
     + `{remote.port}`
     + `{remote.ip}` (prefers the first IP in the `X-Forwarded-For` header)
-    + `{remote.host_prefix.<bits>}` (CIDR block version of `{remote.host}`)
-    + `{remote.ip_prefix.<bits>}` (CIDR block version of `{remote.ip}`)
-- `<rate>`: The request rate limit (per key value) specified in requests per second (r/s) or requests per minute (r/m).
-- `<zone_size>`: The size (i.e. the number of key values) of the LRU zone that keeps states of these key values. Defaults to 10,000.
-- `<reject_status>`: The HTTP status code of the response when a client exceeds the rate limit. Defaults to 429 (Too Many Requests).
+    + `{remote.host_prefix.<bits>}` (CIDR block version)
+    + `{remote.ip_prefix.<bits>}` (CIDR block version)
+- `<rate>`: The request rate limit (per client key) as `Nr/s` or `Nr/m` (requests per second/minute).
+- `<zone_size>`: Max number of key values (LRU zone).
+- `<reject_status>`: HTTP status code to return when limited (default: 429).
 
+---
 
-## Example
-
-With the following Caddyfile:
+## Example: Basic Rate Limiting
 
 ```
 localhost:8080 {
     route /foo {
-        rate_limit {query.id} 2r/m
-
+        rate_limit {remote.ip} 2r/m
         respond 200
     }
 }
 ```
 
-You can apply the rate of `2 requests per minute` to the path `/foo`, and Caddy will respond with status code 429 when a client exceeds:
+Limits `/foo` route to 2 requests/minute per IP. Exceeding the limit gets a 429 response.
 
-```bash
-$ curl -w "%{http_code}" 'https://localhost:8080/foo?id=1'
-200
-$ curl -w "%{http_code}" 'https://localhost:8080/foo?id=1'
-200
-$ curl -w "%{http_code}" 'https://localhost:8080/foo?id=1'
-429
+---
+
+## Example: With Cloudflare Integration
+
 ```
-
-An extra request with other value for the request parameter `id` will not be limited:
-
-```bash
-$ curl -w "%{http_code}" 'https://localhost:8080/foo?id=2'
-200
+localhost:8080 {
+    route /api {
+        rate_limit {remote.ip} 5r/m {
+            cloudflare {
+                api_token <YOUR_API_TOKEN>
+                account_id <YOUR_ACCOUNT_ID>
+                list_id   <YOUR_LIST_ID>
+            }
+        }
+        respond 200
+    }
+}
 ```
+- When a client exceeds the specified rate, their IP will be added to the specified Cloudflare List.
+- The Cloudflare API call is asynchronous and errors are logged to the Caddy log.
 
+---
+
+## Cloudflare Setup Guide
+
+1. **Create an IP Custom List:**
+   - Go to [Cloudflare Dashboard](https://dash.cloudflare.com/).
+   - Choose your account, go to **Lists** > **IP Lists** > **Create List**.
+   - Give the list a name and note the `List ID` after creation.
+2. **Generate an API Token:**
+   - Go to **My Profile** > **API Tokens** > **Create Token**.
+   - Required permissions:
+     - `Zone > Lists: Edit`
+     - `Account > Lists: Edit`
+   - Scope the token as narrowly as possible.
+   - Keep your API token secret.
+3. **Find Your Account ID:**
+   - Account ID is in the dashboard URL or account settings.
+
+---
+
+## Security & Operational Notes
+
+- Cloudflare integration is optional; omit the `cloudflare` block if you don't want to block list IPs.
+- If Cloudflare API calls fail, requests are still rate-limited; blocking is best effort and errors are logged.
+- Rate limiting can be evaded by IP rotation if `{remote.ip}` is used. Use other keys as needed.
+- Ensure you comply with Cloudflare List API rate limits [see docs](https://developers.cloudflare.com/api/operations/account-lists-create-list-item/).
+
+---
 
 [1]: https://caddyserver.com/docs/caddyfile/concepts#placeholders
+
