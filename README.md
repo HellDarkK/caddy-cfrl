@@ -102,4 +102,4 @@ To contribute or develop this module:
 
 ## License
 
-This project is licensed under the MIT License - see the `LICENSE` file for details. (Note: A `LICENSE` file should be added to the project if not already present.)
+Do whatever you want i don't give a damn lol
