@@ -52,7 +52,7 @@ require (
 	github.com/Masterminds/vcs v1.13.0 // indirect
 	github.com/Microsoft/go-winio v0.4.14 // indirect
 	github.com/OneOfOne/xxhash v1.2.2 // indirect
-	github.com/RussellLuo/caddy-ext/cloudflare v0.0.0-00010101000000-000000000000 // indirect
+	github.com/HellDarkK/caddy-cfrl/cloudflare v0.0.0-00010101000000-000000000000 // indirect
 	github.com/Shopify/sarama v1.19.0 // indirect
 	github.com/Shopify/toxiproxy v2.1.4+incompatible // indirect
 	github.com/ThalesIgnite/crypto11 v1.2.4 // indirect
@@ -556,4 +556,4 @@ require (
 	sourcegraph.com/sqs/pbtypes v0.0.0-20180604144634-d3ebe8f20ae4 // indirect
 )
 
-replace github.com/RussellLuo/caddy-ext/cloudflare => ../cloudflare
+replace github.com/HellDarkK/caddy-cfrl/cloudflare => ../cloudflare

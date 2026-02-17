@@ -1,4 +1,4 @@
-# caddy-ext
+# caddy-cfrl
 
 **Focused Extensions for Caddy v2**
 

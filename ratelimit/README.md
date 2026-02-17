@@ -12,7 +12,7 @@ A Caddy v2 extension to apply IP-based rate-limiting for HTTP requests. Optional
 ## Installation
 
 ```
-$ xcaddy build --with github.com/RussellLuo/caddy-ext/ratelimit
+$ xcaddy build --with github.com/HellDarkK/caddy-cfrl/ratelimit
 ```
 
 ---
@@ -35,7 +35,7 @@ rate_limit [<matcher>] <key> <rate> [<zone_size> [<reject_status>]] {
     + `{query.<var>}`
     + `{header.<VAR>}`
     + `{cookie.<var>}`
-    + `{body.<var>}` (requires the [requestbodyvar](https://github.com/RussellLuo/caddy-ext/tree/master/requestbodyvar) extension)
+    + `{body.<var>}` (requires the [requestbodyvar](https://github.com/HellDarkK/caddy-cfrl/tree/master/requestbodyvar) extension)
     + `{remote.host}` (ignores the `X-Forwarded-For` header)
     + `{remote.port}`
     + `{remote.ip}` (prefers the first IP in the `X-Forwarded-For` header)

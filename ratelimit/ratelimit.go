@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/RussellLuo/caddy-ext/cloudflare"
+	"github.com/HellDarkK/caddy-cfrl/cloudflare"
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
 	"go.uber.org/zap"
@@ -44,7 +44,7 @@ type RateLimit struct {
 	// - `{query.<var>}`
 	// - `{header.<VAR>}`
 	// - `{cookie.<var>}`
-	// - `{body.<var>}` (requires the [requestbodyvar](https://github.com/RussellLuo/caddy-ext/tree/master/requestbodyvar) extension)
+	// - `{body.<var>}` (requires the [requestbodyvar](https://github.com/HellDarkK/caddy-cfrl/tree/master/requestbodyvar) extension)
 	// - `{remote.host}` (ignores the `X-Forwarded-For` header)
 	// - `{remote.port}`
 	// - `{remote.ip}` (prefers the first IP in the `X-Forwarded-For` header)
