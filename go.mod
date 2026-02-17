@@ -9,6 +9,8 @@ require (
 	golang.org/x/time v0.14.0
 )
 
+replace github.com/HellDarkK/caddy-cfrl => ./
+
 require (
 	cel.dev/expr v0.24.0 // indirect
 	cloud.google.com/go/auth v0.16.2 // indirect
