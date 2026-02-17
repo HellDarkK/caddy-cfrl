@@ -6,7 +6,7 @@ This repository now contains two modules:
 
 - **ratelimit:**
     - Caddy HTTP middleware for configurable rate limiting by IP (or other properties).
-    - Optionally, when a rate limit is exceeded, the offending client IP is added to a Cloudflare "Custom List" via the Cloudflare API. This allows integrated security and blocking.
+    - Optionally, when a rate limit is exceeded, the offending client IP is added to a Cloudflare "Custom List" via the Cloudflare API. That IP will be automatically removed from the list 20 seconds later. This allows integrated, fast, self-healing blocking.
 - **cloudflare:**
     - Lightweight helper package for interacting with the Cloudflare List API.
     - Used internally by ratelimit for blocking IPs.

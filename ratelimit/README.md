@@ -5,7 +5,7 @@ A Caddy v2 extension to apply IP-based rate-limiting for HTTP requests. Optional
 ## Features
 
 - Powerful and configurable rate limiting by IP or request property (see placeholders).
-- **Cloudflare Integration:** Automatically add violating client IPs to a specified Cloudflare IP Custom List via the Cloudflare API (optional).
+- **Cloudflare Integration:** Automatically add violating client IPs to a specified Cloudflare IP Custom List via the Cloudflare API (optional). The module will also **remove IPs from the list automatically 20 seconds after being added** for fast, self-healing blocks.
 
 ---
 
@@ -79,6 +79,7 @@ localhost:8080 {
 }
 ```
 - When a client exceeds the specified rate, their IP will be added to the specified Cloudflare List.
+- **Their IP will be automatically removed from the list 20 seconds later** (removal is also handled by the module; errors are logged).
 - The Cloudflare API call is asynchronous and errors are logged to the Caddy log.
 
 ---

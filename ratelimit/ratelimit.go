@@ -209,6 +209,24 @@ func (rl *RateLimit) blockIP(ip string) {
 			zap.String("ip", ip),
 			zap.String("list_id", rl.Cloudflare.ListID),
 		)
+		// Schedule removal after 20 seconds
+		go func(ip string) {
+			time.Sleep(20 * time.Second)
+			removeCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			err := rl.cfClient.RemoveIP(removeCtx, ip)
+			if err != nil {
+				rl.logger.Error("failed to remove IP from cloudflare list after unblock delay",
+					zap.String("ip", ip),
+					zap.Error(err),
+				)
+			} else {
+				rl.logger.Info("removed IP from cloudflare list after unblock delay",
+					zap.String("ip", ip),
+					zap.String("list_id", rl.Cloudflare.ListID),
+				)
+			}
+		}(ip)
 	}
 }
 

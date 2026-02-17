@@ -2,6 +2,7 @@ package cloudflare
 
 import (
 	"context"
+	"errors"
 
 	"github.com/cloudflare/cloudflare-go"
 )
@@ -31,5 +32,24 @@ func (c *Client) BlockIP(ctx context.Context, ip, comment string) error {
 			Comment: comment,
 		},
 	})
+	return err
+}
+
+// RemoveIP removes a specific IP from the Cloudflare IP List.
+func (c *Client) RemoveIP(ctx context.Context, ip string) error {
+	items, err := c.api.ListIPListItems(ctx, c.accountID, c.listID)
+	if err != nil {
+		return err
+	}
+	var deleteReq cloudflare.IPListItemDeleteRequest
+	for _, item := range items {
+		if item.IP == ip {
+			deleteReq.Items = append(deleteReq.Items, cloudflare.IPListItemDeleteItemRequest{ID: item.ID})
+		}
+	}
+	if len(deleteReq.Items) == 0 {
+		return errors.New("no matching IP found in Cloudflare IP list")
+	}
+	_, err = c.api.DeleteIPListItems(ctx, c.accountID, c.listID, deleteReq)
 	return err
 }
